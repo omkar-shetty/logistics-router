@@ -7,6 +7,7 @@ def create_logistics_hub(num_spokes=8):
     G = nx.star_graph(num_spokes)
     
     #sAdd business metadata to nodes
+    breakpoint()
     for node in G.nodes:
         if node == 0:
             G.nodes[node]['type'] = 'Regional Hub'
@@ -14,7 +15,7 @@ def create_logistics_hub(num_spokes=8):
         else:
             G.nodes[node]['type'] = 'Customer/Spoke'
             G.nodes[node]['color'] = 'skyblue'
-            G.nodes[node]['demand'] = 10 
+            G.nodes[node]['demand'] = random.randint(0,100) 
 
     return G
     
