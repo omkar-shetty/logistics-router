@@ -7,7 +7,6 @@ def create_logistics_hub(num_spokes=8):
     G = nx.star_graph(num_spokes)
     
     #sAdd business metadata to nodes
-    breakpoint()
     for node in G.nodes:
         if node == 0:
             G.nodes[node]['type'] = 'Regional Hub'
