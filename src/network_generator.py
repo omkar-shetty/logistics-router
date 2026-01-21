@@ -17,6 +17,16 @@ class LogisticsNetwork:
         for u,v,data in self.NetGraph.edges(data=True):
             if 'capacity' not in data:
                 self.NetGraph.edges[u,v]['capacity'] = random.randint(10,50)
+    
+    def add_travel_time(self):
+        for u,v, data in self.NetGraph.edges(data=True):
+            distance_metres = data.get('length',1)
+            speed_kmh = data.get('speed_kph',30)
+            speed_mpm = (speed_kmh * 1000) / 60  # meters per minute
+            travel_time_min = distance_metres / speed_mpm
+
+            self.NetGraph.edges[u, v]['travel_time'] = travel_time_min
+            self.NetGraph.edges[u, v]['weight'] = travel_time_min
 
     def add_pos_data(self):
         """Ensures all nodes have a 'pos' attribute for NetworkX drawing."""
@@ -66,6 +76,19 @@ class LogisticsNetwork:
         for i in range(4, len(nodes)):
             if 'type' not in self.NetGraph.nodes[nodes[i]]:
                 self.NetGraph.nodes[nodes[i]]['type'] = 'customer'
+
+    def get_path_distance(self, source_node, target_node):
+
+        path_nodes = nx.shortest_path(self.NetGraph, 
+                                      source=source_node, 
+                                      target=target_node, 
+                                      weight='weight')
+        total_distance_metres = 0
+        for i in range(len(path_nodes) - 1):
+            u, v = path_nodes[i], path_nodes[i+1]
+            total_distance_metres += self.NetGraph.edges[u, v].get('length', 0)
+
+        return total_distance_metres
 
     def visualize(self):
         if self.NetGraph.number_of_nodes() > 1000:
