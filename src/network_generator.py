@@ -1,4 +1,5 @@
 
+import json
 import osmnx as ox
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -78,17 +79,21 @@ class LogisticsNetwork:
                 self.NetGraph.nodes[nodes[i]]['type'] = 'customer'
 
     def get_path_distance(self, source_node, target_node):
+        try:
+            path_nodes = nx.shortest_path(self.NetGraph, 
+                                        source=source_node, 
+                                        target=target_node, 
+                                        weight='weight')
+            total_distance_metres = 0
+            for i in range(len(path_nodes) - 1):
+                u, v = path_nodes[i], path_nodes[i+1]
+                total_distance_metres += self.NetGraph.edges[u, v].get('length', 0)
 
-        path_nodes = nx.shortest_path(self.NetGraph, 
-                                      source=source_node, 
-                                      target=target_node, 
-                                      weight='weight')
-        total_distance_metres = 0
-        for i in range(len(path_nodes) - 1):
-            u, v = path_nodes[i], path_nodes[i+1]
-            total_distance_metres += self.NetGraph.edges[u, v].get('length', 0)
-
-        return total_distance_metres
+            return total_distance_metres
+        except nx.NetworkXNoPath:
+            # Instead of crashing, return a penalty value (infinity)
+            print(f"Warning: No path found between {source_node} and {target_node}")
+            return float('inf')
 
     def visualize(self):
         if self.NetGraph.number_of_nodes() > 1000:
@@ -109,3 +114,26 @@ class LogisticsNetwork:
             arrowsize=20)
         plt.title("Logistics Network: Red (WH), Blue (Hub), Green (Customer)")
         plt.show()
+
+    def save_to_json(self, file_path: str):
+        G_copy = self.NetGraph.copy()
+        
+        # Remove 'geometry' attribute from all edges
+        for u, v, data in G_copy.edges(data=True):
+            if 'geometry' in data:
+                del data['geometry']
+                
+        data = nx.node_link_data(G_copy)
+        with open(file_path, 'w') as f:
+            json.dump(data, f, indent=4)
+        print(f"Network successfully saved to {file_path}")
+
+    @classmethod
+    def load_from_json(cls, file_path: str):
+        """Creates a LogisticsNetwork instance from a JSON file."""
+        with open(file_path, 'r') as f:
+            data = json.load(f)
+        # Reconstruct the graph from dictionary
+        graph = nx.node_link_graph(data)
+        print(f"Network successfully loaded from {file_path}")
+        return cls(incoming_graph=graph)
