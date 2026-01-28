@@ -11,8 +11,24 @@ class LogisticsNetwork:
         self.NetGraph = nx.DiGraph() if input_graph is None else input_graph 
         #ensure that the 'pos' metadata is available for input graphs as well.
         self.add_pos_data()
-        self.add_capacity_data()
-        self.assign_roles()
+        self._initialize_metadata()
+        # self.add_capacity_data()
+        # self.assign_roles()
+    
+    def _initialize_metadata(self):
+        """Ensures the graph has necessary attributes without overwriting existing ones."""
+        # Check if any node has a type; if not, assign roles
+        if not any('type' in data for _, data in self.NetGraph.nodes(data=True)):
+            self.assign_roles()
+            
+        # Check if any edge has capacity
+        sample_edge = next(iter(self.NetGraph.edges(data=True)), (None, None, {}))
+        if 'capacity' not in sample_edge[2]:
+            self.add_capacity_data()
+            
+        # Ensure travel times/weights are calculated
+        if 'weight' not in sample_edge[2]:
+            self.add_travel_time()
 
     def add_capacity_data(self):
         for u,v,data in self.NetGraph.edges(data=True):
@@ -80,16 +96,12 @@ class LogisticsNetwork:
 
     def get_path_distance(self, source_node, target_node):
         try:
-            path_nodes = nx.shortest_path(self.NetGraph, 
+            path_dist = nx.shortest_path_length(self.NetGraph, 
                                         source=source_node, 
                                         target=target_node, 
                                         weight='weight')
-            total_distance_metres = 0
-            for i in range(len(path_nodes) - 1):
-                u, v = path_nodes[i], path_nodes[i+1]
-                total_distance_metres += self.NetGraph.edges[u, v].get('length', 0)
 
-            return total_distance_metres
+            return path_dist
         except nx.NetworkXNoPath:
             # Instead of crashing, return a penalty value (infinity)
             print(f"Warning: No path found between {source_node} and {target_node}")
@@ -128,6 +140,19 @@ class LogisticsNetwork:
             json.dump(data, f, indent=4)
         print(f"Network successfully saved to {file_path}")
 
+    def simulate_traffic(self, intensity=1.5):
+        """Generates traffick data to simulate rush hour.
+
+        Args:
+            intensity (float, optional): Ranges between 1(low traffic) to 3(rush hour). Defaults to 1.5.
+        """
+        for u,v, data in self.NetGraph.edges(data=True):
+
+            base_time = data.get('travel_time', 1.0)
+            multi_factor = random.uniform(intensity*0.8, intensity*1.2)
+            self.NetGraph.edges[u,v]['weight'] = base_time*multi_factor
+            self.NetGraph.edges[u,v]['congestion_factor'] = multi_factor
+
     @classmethod
     def load_from_json(cls, file_path: str):
         """Creates a LogisticsNetwork instance from a JSON file."""
@@ -136,4 +161,4 @@ class LogisticsNetwork:
         # Reconstruct the graph from dictionary
         graph = nx.node_link_graph(data)
         print(f"Network successfully loaded from {file_path}")
-        return cls(incoming_graph=graph)
+        return cls(input_graph=graph)
