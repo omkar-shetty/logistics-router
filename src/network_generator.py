@@ -86,13 +86,17 @@ class LogisticsNetwork:
         
         # Assign 1 WH, 3 Hubs, rest are customers
         self.NetGraph.nodes[nodes[0]]['type'] = 'warehouse'
+        self.NetGraph.nodes[nodes[0]]['urgency'] = 0
+
         for i in range(1, 4):
             self.NetGraph.nodes[nodes[i]]['type'] = 'hub'
+            self.NetGraph.nodes[nodes[i]]['urgency'] = 0
         
         # Ensure remaining nodes are customers
         for i in range(4, len(nodes)):
             if 'type' not in self.NetGraph.nodes[nodes[i]]:
                 self.NetGraph.nodes[nodes[i]]['type'] = 'customer'
+                self.NetGraph.nodes[nodes[i]]['urgency'] = random.choices([0, 1, 2], weights=[0.6, 0.3, 0.1])[0]
 
     def get_path_distance(self, source_node, target_node):
         try:
