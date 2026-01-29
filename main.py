@@ -30,5 +30,10 @@ def main():
     print(f"Rush Hour: {time_rush:.1f} mins")
     print(f"Traffic Delay: {time_rush - time_clear:.1f} mins")
 
+    #Convert to dataframes
+    node_df, edge_df = nyc_network.convert_to_dataframes()
+    print(node_df)
+    print(edge_df)
+
 if __name__ == "__main__":
     main()

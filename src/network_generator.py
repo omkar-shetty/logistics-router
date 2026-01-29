@@ -1,6 +1,7 @@
 
 import json
 import osmnx as ox
+import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
@@ -118,12 +119,21 @@ class LogisticsNetwork:
             return
         
         pos = nx.get_node_attributes(self.NetGraph, 'pos')
-        colors = [
-            'red' if self.NetGraph.nodes[n]['type'] == 'warehouse' 
-            else 'blue' if self.NetGraph.nodes[n]['type'] == 'hub' 
-            else 'green' if self.NetGraph.nodes[n].get('type') == 'customer'
-            else 'gray' for n in self.NetGraph.nodes
-        ]
+        colors = []
+        for n in self.NetGraph.nodes:
+            node_type = self.NetGraph.nodes[n].get('type', 'unknown')
+            if node_type == 'warehouse':
+                colors.append('red')
+            elif node_type == 'hub':
+                colors.append('blue')
+            elif node_type == 'customer':
+                urgency = self.NetGraph.nodes[n].get('urgency', 0)
+                if urgency == 2:
+                    colors.append('darkgreen')
+                elif urgency == 1:
+                    colors.append('green')
+                else:
+                    colors.append('lightgreen')
         
         plt.figure(figsize=(12, 8))
         nx.draw(self.NetGraph, pos, with_labels=True, node_color=colors, node_size=800, font_size=8, edge_color='gray',
@@ -156,6 +166,25 @@ class LogisticsNetwork:
             multi_factor = random.uniform(intensity*0.8, intensity*1.2)
             self.NetGraph.edges[u,v]['weight'] = base_time*multi_factor
             self.NetGraph.edges[u,v]['congestion_factor'] = multi_factor
+
+    def convert_to_dataframes(self):
+        """Converts the graph's nodes and edges to pandas DataFrames."""
+
+        nodes_data = []
+        for n, data in self.NetGraph.nodes(data=True):
+            node_info = {'node_id': n}
+            node_info.update(data)
+            nodes_data.append(node_info)
+        nodes_df = pd.DataFrame(nodes_data)
+
+        edges_data = []
+        for u, v, data in self.NetGraph.edges(data=True):
+            edge_info = {'start_node': u, 'end_node': v}
+            edge_info.update(data)
+            edges_data.append(edge_info)
+        edges_df = pd.DataFrame(edges_data)
+
+        return nodes_df, edges_df
 
     @classmethod
     def load_from_json(cls, file_path: str):
