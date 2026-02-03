@@ -19,7 +19,8 @@ class LogisticsNetwork:
     def _initialize_metadata(self):
         """Ensures the graph has necessary attributes without overwriting existing ones."""
         # Check if any node has a type; if not, assign roles
-        if not any('type' in data for _, data in self.NetGraph.nodes(data=True)):
+        if not any('type' in data for _, data in self.NetGraph.nodes(data=True)) or \
+            not any('urgency' in data for _, data in self.NetGraph.nodes(data=True)):
             self.assign_roles()
             
         # Check if any edge has capacity
