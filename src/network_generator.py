@@ -164,7 +164,12 @@ class LogisticsNetwork:
         for u,v, data in self.NetGraph.edges(data=True):
 
             base_time = data.get('travel_time', 1.0)
-            multi_factor = random.uniform(intensity*0.8, intensity*1.2)
+            capacity = data.get('capacity', 30)
+
+            volatility = 0.4 if capacity < 20 else 0.1
+
+            multi_factor = max(1.0, random.gauss(intensity, intensity*volatility))
+
             self.NetGraph.edges[u,v]['weight'] = base_time*multi_factor
             self.NetGraph.edges[u,v]['congestion_factor'] = multi_factor
 
@@ -172,7 +177,7 @@ class LogisticsNetwork:
         """Converts the graph's nodes and edges to pandas DataFrames."""
 
         nodes_data = []
-        for n, data in self.NetGraph.nodes(data=True):
+        for n, data in self.NetGraph.nodes(data=True): 
             node_info = {'node_id': n}
             node_info.update(data)
             nodes_data.append(node_info)
