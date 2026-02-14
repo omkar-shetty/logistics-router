@@ -36,12 +36,11 @@ def main():
 
     urgent_nodes = node_df.loc[node_df['urgency']>=1,'node_id']
     print(f'High Urgency Nodes:{urgent_nodes}')
-    vehicle1 = Vehicle(vehicle_id=1)
-    vehicle1.current_node = 42490789
+    vehicle1 = Vehicle(vehicle_id=1, start_node=42490789)
     vehicle1.generate_greedy_path(urgent_nodes, nyc_network)
     print('****** Greedy Path Computed ******')
-    print(f'Travle path: {vehicle1.route_history}')
-    print(f'Travle time: {vehicle1.travel_time}')
+    print(f'Travel path: {vehicle1.route_history}')
+    print(f'Travel time: {vehicle1.travel_time}')
 
 if __name__ == "__main__":
     main()
