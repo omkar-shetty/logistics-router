@@ -34,11 +34,13 @@ class LogisticsNetwork:
             self.add_travel_time()
 
     def add_capacity_data(self):
+        """Adds maximum travel capacity to network edges."""
         for u,v,data in self.NetGraph.edges(data=True):
             if 'capacity' not in data:
                 self.NetGraph.edges[u,v]['capacity'] = random.randint(10,50)
     
     def add_travel_time(self):
+        """Adds nominal travel times to edges - which are also used as weights."""
         for u,v, data in self.NetGraph.edges(data=True):
             distance_metres = data.get('length',1)
             speed_kmh = data.get('speed_kph',30)
@@ -56,6 +58,7 @@ class LogisticsNetwork:
                 self.NetGraph.nodes[n]['pos'] = (data['x'], data['y'])   
 
     def add_location(self, loc_id:str, loc_type:str, x:float, y:float, demand:float = 0):
+        """Adds node to the network."""
         self.NetGraph.add_node(
             node_for_adding=loc_id,
             type = loc_type,
@@ -66,6 +69,7 @@ class LogisticsNetwork:
         )
 
     def add_edge(self, start_loc:str, end_loc:str, distance:float, traffic_factor:float=1):
+        """Adds an edge to the network."""
         weighted_dist = distance*traffic_factor
         self.NetGraph.add_edge(
             u_of_edge=start_loc,
@@ -84,6 +88,7 @@ class LogisticsNetwork:
         }
 
     def assign_roles(self):
+        """Assign roles, urgency and demand to nodes."""
         nodes = list(self.NetGraph.nodes)
         random.shuffle(nodes)
         
@@ -101,6 +106,7 @@ class LogisticsNetwork:
                 self.NetGraph.nodes[nodes[i]]['demand'] = random.uniform(5,25)
 
     def get_path_distance(self, source_node, target_node):
+        """Returns the shortest path distance between the source and the target."""
         try:
             path_dist = nx.shortest_path_length(self.NetGraph, 
                                         source=source_node, 
@@ -114,6 +120,7 @@ class LogisticsNetwork:
             return float('inf')
 
     def visualize(self):
+        """Visualizes the network with colours indicating node type and urgency."""
         if self.NetGraph.number_of_nodes() > 1000:
             print("Graph too large for standard draw. Using OSMnx spatial plot...")
             ox.plot_graph(self.NetGraph)
@@ -143,6 +150,7 @@ class LogisticsNetwork:
         plt.show()
 
     def save_to_json(self, file_path: str):
+        """Saves the edge data to json files."""
         G_copy = self.NetGraph.copy()
         
         # Remove 'geometry' attribute from all edges
