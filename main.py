@@ -2,8 +2,11 @@ import os
 from src.spatial_data_mapper import SpatialDataMapper
 from src.network_generator import LogisticsNetwork
 from src.vehicle_router import Vehicle
+from sklearn.cluster import KMeans
 
 DATA_PATH = "data/brooklyn_net.json"
+HUB_NODE = 42490789
+RUN_TYPE = 'multi' #option to select between single ('single') and multiple ('multi') vehicle runs
 
 def main():
     if os.path.exists(DATA_PATH):
@@ -34,13 +37,37 @@ def main():
     #Convert to dataframes
     node_df, edge_df = nyc_network.convert_to_dataframes()
 
-    urgent_nodes = node_df.loc[node_df['urgency']>=1,'node_id']
+    urgent_cust_df = node_df.loc[node_df['urgency']>=1].copy()
+    urgent_nodes = urgent_cust_df['node_id'].tolist()
+    cust_coords = urgent_cust_df[['x','y']]
     print(f'High Urgency Nodes:{urgent_nodes}')
-    vehicle1 = Vehicle(vehicle_id=1, start_node=42490789)
-    vehicle1.generate_greedy_path(urgent_nodes, nyc_network)
-    print('****** Greedy Path Computed ******')
-    print(f'Travel path: {vehicle1.route_history}')
-    print(f'Travel time: {vehicle1.travel_time}')
+
+    if RUN_TYPE == 'single':
+        # Single Vehicle Path Calculation
+        vehicle1 = Vehicle(vehicle_id=1, start_node=HUB_NODE)
+        vehicle1.generate_greedy_path(urgent_nodes, nyc_network)
+        print('****** Greedy Path Computed ******')
+        print(f'Travel path: {vehicle1.route_history}')
+        print(f'Travel time: {vehicle1.travel_time}')
+    elif RUN_TYPE == 'multi':
+        # Multi Vehicle Path Calculation
+        vehicle_count = 3
+        kmeans = KMeans(n_clusters=vehicle_count, 
+                        init='k-means++', 
+                        random_state=42).fit(cust_coords)
+        urgent_cust_df['cluster'] = kmeans.labels_
+
+        fleet = [Vehicle(vehicle_id=i, start_node=HUB_NODE) for i in range(vehicle_count)]
+
+        for i, vehicle in enumerate(fleet):
+            node_list = urgent_cust_df.loc[urgent_cust_df['cluster']==i, 'node_id']
+            vehicle.generate_greedy_path(node_list, nyc_network)
+
+            print(f'Vehicle: {vehicle.vehicle_id}')
+            print(f'Travel path: {vehicle.route_history}')
+            print(f'Travel time: {vehicle.travel_time}')
+
+
 
 if __name__ == "__main__":
     main()
