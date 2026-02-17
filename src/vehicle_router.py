@@ -13,6 +13,7 @@ class Vehicle:
         self.carried_load = 0 #Current load assigned to the vehicle
 
     def move_to_target(self, target_node, node_travel_time, demand):
+        """Moves the vehicle to the target node"""
         self.current_node = target_node
         self.travel_time += node_travel_time
         self.carried_load += demand
