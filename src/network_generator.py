@@ -242,12 +242,31 @@ class LogisticsNetwork:
         edges_data = []
         for u, v, data in self.NetGraph.edges(data=True):
             edge_info = {'start_node': u, 'end_node': v}
-            edge_info.update(data)
+            
+            for key, value in data.items():
+                if key == 'geometry': continue 
+                # Convert lists (like multiple street names) to strings
+                if isinstance(value, list):
+                    edge_info[key] = ", ".join(map(str, value))
+                else:
+                    edge_info[key] = value
+                    
             edges_data.append(edge_info)
-        edges_df = pd.DataFrame(edges_data)
-
-        return nodes_df, edges_df
+        
+        return pd.DataFrame(nodes_data), pd.DataFrame(edges_data)
     
+    def export_to_csv(self, prefix="network"):
+        """Exports the current state of nodes and edges to CSV files."""
+        nodes_df, edges_df = self.convert_to_dataframes()
+        
+        nodes_file = f"{prefix}_nodes.csv"
+        edges_file = f"{prefix}_edges.csv"
+        
+        nodes_df.to_csv(nodes_file, index=False)
+        edges_df.to_csv(edges_file, index=False)
+        
+        print(f"Tabular export complete: \n- {nodes_file} \n- {edges_file}")
+
     def _min_max_scale(self, values: list, inverse=False):
         """Helper to scale a list of values between 0 and 1."""
         v_min, v_max = min(values), max(values)
