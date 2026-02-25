@@ -4,6 +4,8 @@ import osmnx as ox
 import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+import matplotlib.cm as cm
 import random
 
 class LogisticsNetwork:
@@ -32,6 +34,8 @@ class LogisticsNetwork:
         # Ensure travel times/weights are calculated
         if 'weight' not in sample_edge[2]:
             self.add_travel_time()
+
+        self.normalize_edge_attributes(time_weight=0.7, dist_weight=0.3)
 
     def add_capacity_data(self):
         """Adds maximum travel capacity to network edges."""
@@ -120,33 +124,77 @@ class LogisticsNetwork:
             return float('inf')
 
     def visualize(self):
-        """Visualizes the network with colours indicating node type and urgency."""
+        """Advanced visualization using normalized costs and node demand."""
+
         if self.NetGraph.number_of_nodes() > 1000:
             print("Graph too large for standard draw. Using OSMnx spatial plot...")
-            ox.plot_graph(self.NetGraph)
+            ox.plot_graph(self.NetGraph, node_size=5, edge_linewidth=0.5)
             return
         
         pos = nx.get_node_attributes(self.NetGraph, 'pos')
-        colors = []
-        for n in self.NetGraph.nodes:
-            node_type = self.NetGraph.nodes[n].get('type', 'unknown')
-            if node_type == 'warehouse':
-                colors.append('red')
-            elif node_type == 'hub':
-                colors.append('blue')
-            elif node_type == 'customer':
-                urgency = self.NetGraph.nodes[n].get('urgency', 0)
-                if urgency == 2:
-                    colors.append('darkgreen')
-                elif urgency == 1:
-                    colors.append('green')
-                else:
-                    colors.append('lightgreen')
         
-        plt.figure(figsize=(12, 8))
-        nx.draw(self.NetGraph, pos, with_labels=True, node_color=colors, node_size=800, font_size=8, edge_color='gray',
-            arrowsize=20)
-        plt.title("Logistics Network: Red (WH), Blue (Hub), Green (Customer)")
+        # --- 1. Edge Styling (Based on Weight/Cost) ---
+        weights = [d.get('weight', 0.5) for _, _, d in self.NetGraph.edges(data=True)]
+        # Map weights to a Red-Yellow-Green colormap (reversed because low cost = green)
+        cmap = cm.get_cmap('RdYlGn_r') 
+        edge_colors = [cmap(w) for w in weights]
+        
+        # --- 2. Node Styling ---
+        node_colors = []
+        node_sizes = []
+        
+        for n in self.NetGraph.nodes:
+            data = self.NetGraph.nodes[n]
+            n_type = data.get('type', 'customer')
+            
+            # Color by type
+            if n_type == 'warehouse':
+                node_colors.append('#e74c3c') # Bright Red
+                node_sizes.append(1200)
+            elif n_type == 'hub':
+                node_colors.append('#3498db') # Bright Blue
+                node_sizes.append(800)
+            else:
+                # Customer color depends on urgency
+                urgency = data.get('urgency', 0)
+                node_colors.append(['#2ecc71', '#f1c40f', '#e67e22'][urgency])
+                # Size depends on demand
+                demand = data.get('demand', 10)
+                node_sizes.append(100 + (demand * 20))
+
+        # --- 3. Plotting ---
+        plt.figure(figsize=(14, 10))
+        
+        # Draw edges first
+        nx.draw_networkx_edges(
+            self.NetGraph, pos, 
+            edge_color=edge_colors, 
+            width=2, 
+            alpha=0.6, 
+            arrows=True, 
+            arrowsize=15
+        )
+        
+        # Draw nodes
+        nx.draw_networkx_nodes(
+            self.NetGraph, pos, 
+            node_color=node_colors, 
+            node_size=node_sizes, 
+            edgecolors='white', 
+            linewidths=1
+        )
+
+        # Only draw labels if the graph is readable (< 50 nodes)
+        if self.NetGraph.number_of_nodes() < 50:
+            nx.draw_networkx_labels(self.NetGraph, pos, font_size=8, font_family="sans-serif")
+
+        plt.title("Brooklyn Logistics: Edge Color = Congestion/Cost | Node Size = Demand", fontsize=15)
+        plt.axis('off')
+        
+        # Add a colorbar to explain the edge colors
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=0, vmax=1))
+        plt.colorbar(sm, label="Normalized Edge Cost (0=Fast, 1=Congested)", ax=plt.gca(), shrink=0.5)
+        
         plt.show()
 
     def save_to_json(self, file_path: str):
@@ -199,6 +247,38 @@ class LogisticsNetwork:
         edges_df = pd.DataFrame(edges_data)
 
         return nodes_df, edges_df
+    
+    def _min_max_scale(self, values: list, inverse=False):
+        """Helper to scale a list of values between 0 and 1."""
+        v_min, v_max = min(values), max(values)
+        v_range = (v_max - v_min) if v_max != v_min else 1
+        
+        if inverse:
+            return [(v_max - v) / v_range for v in values]
+        return [(v - v_min) / v_range for v in values]
+    
+    def normalize_edge_attributes(self, time_weight=0.7, dist_weight=0.3):
+        """Normalizes edge weights to a 0-1 scale, where higher values indicate more congestion."""
+        edges = list(self.NetGraph.edges(data=True))
+        travel_times = [data.get('travel_time', 1.0) for _, _, data in self.NetGraph.edges(data=True)]
+        norm_times = self._min_max_scale(travel_times)
+
+        lengths = [data.get('length', 1.0) for _, _, data in self.NetGraph.edges(data=True)]
+        norm_dists = self._min_max_scale(lengths)
+        
+        for i, (u, v, data) in enumerate(edges):
+            t_cost = norm_times[i]
+            d_cost = norm_dists[i]
+            
+            # Combine into a single cost metric
+            composite_cost = (time_weight * t_cost) + (dist_weight * d_cost)
+            
+            # Update edge metadata
+            self.NetGraph.edges[u, v].update({
+                'norm_time_cost': t_cost,
+                'norm_dist_cost': d_cost,
+                'weight': composite_cost  # Primary weight for Dijkstra
+            })
 
     @classmethod
     def load_from_json(cls, file_path: str):

@@ -17,7 +17,7 @@ def main():
         os.makedirs("data", exist_ok=True)
         nyc_network.save_to_json(DATA_PATH)
     print(f"Network built with {nyc_network.get_stats()} elements.")
-    # nyc_network.visualize()
+    nyc_network.visualize()
     
     start = list(nyc_network.NetGraph.nodes)[0]
     end = list(nyc_network.NetGraph.nodes)[-1]
