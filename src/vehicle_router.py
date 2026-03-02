@@ -19,6 +19,7 @@ class Vehicle:
         self.carried_load += demand
 
     def generate_greedy_path(self, nodes_to_visit, net_graph: LogisticsNetwork):
+        """Greedy implementation to travel to nodes to be visited,"""
         univisited_nodes = set(nodes_to_visit)
         while univisited_nodes:
             travel_dist = {}
