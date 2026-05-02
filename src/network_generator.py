@@ -7,6 +7,9 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import matplotlib.cm as cm
 import random
+from src.logger import get_logger
+
+logger = get_logger(__name__)
 
 class LogisticsNetwork:
 
@@ -120,14 +123,14 @@ class LogisticsNetwork:
             return path_dist
         except nx.NetworkXNoPath:
             # Instead of crashing, return a penalty value (infinity)
-            print(f"Warning: No path found between {source_node} and {target_node}")
+            logger.warning(f"No path found between {source_node} and {target_node}")
             return float('inf')
 
     def visualize(self):
         """Advanced visualization using normalized costs and node demand."""
 
         if self.NetGraph.number_of_nodes() > 1000:
-            print("Graph too large for standard draw. Using OSMnx spatial plot...")
+            logger.info("Graph too large for standard draw. Using OSMnx spatial plot...")
             ox.plot_graph(self.NetGraph, node_size=5, edge_linewidth=0.5)
             return
         
@@ -209,7 +212,7 @@ class LogisticsNetwork:
         data = nx.node_link_data(G_copy)
         with open(file_path, 'w') as f:
             json.dump(data, f, indent=4)
-        print(f"Network successfully saved to {file_path}")
+        logger.info(f"Network successfully saved to {file_path}")
 
     def simulate_traffic(self, intensity=1.5):
         """Generates traffick data to simulate rush hour.
@@ -265,7 +268,7 @@ class LogisticsNetwork:
         nodes_df.to_csv(nodes_file, index=False)
         edges_df.to_csv(edges_file, index=False)
         
-        print(f"Tabular export complete: \n- {nodes_file} \n- {edges_file}")
+        logger.info(f"Tabular export complete: \n- {nodes_file} \n- {edges_file}")
 
     def _min_max_scale(self, values: list, inverse=False):
         """Helper to scale a list of values between 0 and 1."""
@@ -306,5 +309,5 @@ class LogisticsNetwork:
             data = json.load(f)
         # Reconstruct the graph from dictionary
         graph = nx.node_link_graph(data)
-        print(f"Network successfully loaded from {file_path}")
+        logger.info(f"Network successfully loaded from {file_path}")
         return cls(input_graph=graph)
