@@ -1,3 +1,5 @@
+#POC implementation of a hub and spoke topology
+
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
