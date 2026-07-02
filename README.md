@@ -2,7 +2,7 @@
 
 A tool for optimizing delivery routes in urban environments by simulating real-world traffic conditions.
 
-This project helps figure out the best routes for delivering packages around an urban location (for example, Brooklyn) by taking into account how traffic changes throughout the day. It uses actual street maps and can simulate what happens during rush hour versus quiet times like midnight.
+Naive shortest-path routing ignores vehicle capacity, demand urgency, and dynamic traffic conditions. This project implements and benchmarks fleet strategies on a real urban street graph (Brooklyn, NY) to quantify routing tradeoffs under realistic constraints.
 
 ## Key Features
 
@@ -23,8 +23,13 @@ This project helps figure out the best routes for delivering packages around an 
    python main.py
    ```
 
-The first time you run it, it will download Brooklyn's street network (this takes a moment). After that, it saves the data so future runs are much faster.
+The first run downloads Brooklyn's street network and caches it to `data/brooklyn_net.json`. Subsequent runs load from cache.
 
+To switch between single and multi-vehicle mode, set `RUN_TYPE` in `main.py`:
+```python
+RUN_TYPE = 'single'   # single vehicle, greedy NN
+RUN_TYPE = 'multi'    # 3-vehicle fleet with KMeans dispatch
+```
 
 ## Project Structure
 
