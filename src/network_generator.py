@@ -4,7 +4,6 @@ import osmnx as ox
 import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
 import matplotlib.cm as cm
 import random
 from src.logger import get_logger
@@ -126,8 +125,11 @@ class LogisticsNetwork:
             logger.warning(f"No path found between {source_node} and {target_node}")
             return float('inf')
 
-    def visualize(self):
-        """Advanced visualization using normalized costs and node demand."""
+    def visualize(self, save_path=None):
+        """Advanced visualization using normalized costs and node demand.
+
+        save_path: optional. If given, saves the figure there.
+        """
 
         if self.NetGraph.number_of_nodes() > 1000:
             logger.info("Graph too large for standard draw. Using OSMnx spatial plot...")
@@ -136,13 +138,13 @@ class LogisticsNetwork:
         
         pos = nx.get_node_attributes(self.NetGraph, 'pos')
         
-        # --- 1. Edge Styling (Based on Weight/Cost) ---
+        # Edge Styling (Based on Weight/Cost)
         weights = [d.get('weight', 0.5) for _, _, d in self.NetGraph.edges(data=True)]
         # Map weights to a Red-Yellow-Green colormap (reversed because low cost = green)
         cmap = cm.get_cmap('RdYlGn_r') 
         edge_colors = [cmap(w) for w in weights]
         
-        # --- 2. Node Styling ---
+        # Node Styling
         node_colors = []
         node_sizes = []
         
@@ -165,7 +167,7 @@ class LogisticsNetwork:
                 demand = data.get('demand', 10)
                 node_sizes.append(100 + (demand * 20))
 
-        # --- 3. Plotting ---
+        # Plotting
         plt.figure(figsize=(14, 10))
         
         # Draw edges first
@@ -197,8 +199,72 @@ class LogisticsNetwork:
         # Add a colorbar to explain the edge colors
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=0, vmax=1))
         plt.colorbar(sm, label="Normalized Edge Cost (0=Fast, 1=Congested)", ax=plt.gca(), shrink=0.5)
-        
-        plt.show()
+
+        if save_path:
+            plt.savefig(save_path, dpi=150, bbox_inches='tight')
+            plt.close()
+        else:
+            plt.show()
+
+    def _stitch_route(self, route):
+        """Expands a stop-to-stop itinerary into an edge-adjacent path."""
+        full_route = [route[0]]
+        for u, v in zip(route[:-1], route[1:]):
+            if u == v:
+                continue
+            segment = nx.shortest_path(self.NetGraph, u, v, weight='weight')
+            full_route.extend(segment[1:])
+        return full_route
+
+    def save_street_visualization(self, filepath, route=None):
+        """Renders and saves the actual Brooklyn street network (real lat/lon geometry)."""
+
+        # OSMnx's plotting/gdf conversion requires a MultiDiGraph with edge keys;
+        # self.NetGraph is a plain DiGraph, so convert a throwaway copy for plotting.
+        multi_graph = nx.MultiDiGraph(self.NetGraph)
+
+        is_multi_route = bool(route) and isinstance(route[0], tuple)
+
+        if is_multi_route:
+            routes = [self._stitch_route(r) for r, _ in route]
+            colors = [c for _, c in route]
+
+            fig, ax = ox.plot_graph_routes(
+                multi_graph,
+                routes,
+                route_colors=colors,
+                route_linewidths=3,
+                node_size=15,
+                node_color='#3498db',
+                show=False,
+                close=False
+            )
+        elif route:
+            full_route = self._stitch_route(route)
+
+            fig, ax = ox.plot_graph_route(
+                multi_graph,
+                full_route,
+                node_size=15,
+                node_color='#3498db',
+                route_color='#e74c3c',
+                route_linewidth=3,
+                show=False,
+                close=False
+            )
+        else:
+            fig, ax = ox.plot_graph(
+                multi_graph,
+                node_size=15,
+                node_color='#3498db',
+                edge_color='#999999',
+                show=False,
+                close=False
+            )
+
+        fig.savefig(filepath, dpi=150, bbox_inches='tight')
+        plt.close(fig)
+        logger.info(f"Street network visualization saved to {filepath}")
 
     def save_to_json(self, file_path: str):
         """Saves the edge data to json files."""
@@ -214,12 +280,14 @@ class LogisticsNetwork:
             json.dump(data, f, indent=4)
         logger.info(f"Network successfully saved to {file_path}")
 
-    def simulate_traffic(self, intensity=1.5):
+    def simulate_traffic(self, intensity=1.5, seed=42):
         """Generates traffick data to simulate rush hour.
 
         Args:
             intensity (float, optional): Ranges between 1(low traffic) to 3(rush hour). Defaults to 1.5.
+            seed (int, optional)
         """
+        rng = random.Random(seed)
         for u,v, data in self.NetGraph.edges(data=True):
 
             base_time = data.get('travel_time', 1.0)
@@ -227,7 +295,7 @@ class LogisticsNetwork:
 
             volatility = 0.4 if capacity < 20 else 0.1
 
-            multi_factor = max(1.0, random.gauss(intensity, intensity*volatility))
+            multi_factor = max(1.0, rng.gauss(intensity, intensity*volatility))
 
             self.NetGraph.edges[u,v]['weight'] = base_time*multi_factor
             self.NetGraph.edges[u,v]['congestion_factor'] = multi_factor

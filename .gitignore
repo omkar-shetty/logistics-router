@@ -1,0 +1,15 @@
+# Visual Studio
+.vs/
+.vs/cache/data/src/__pycache__/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+
+# General Cache
+**/cache/
+
+#Miscellaneous
+data/
+.DS_Store
+results/*.html
