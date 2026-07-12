@@ -17,8 +17,6 @@ class LogisticsNetwork:
         #ensure that the 'pos' metadata is available for input graphs as well.
         self.add_pos_data()
         self._initialize_metadata()
-        # self.add_capacity_data()
-        # self.assign_roles()
     
     def _initialize_metadata(self):
         """Ensures the graph has necessary attributes without overwriting existing ones."""
