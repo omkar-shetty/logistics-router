@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 
 @dataclass
 class FleetSolution:
-    """Result of running a RoutingSolver over a fleet."""
+    """Returns the result of running a RoutingSolver over a fleet."""
     routes: list
     travel_times: list
     served: set

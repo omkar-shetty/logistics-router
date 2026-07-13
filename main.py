@@ -2,6 +2,7 @@ import os
 from src.network.spatial_data_mapper import SpatialDataMapper
 from src.network.network_generator import LogisticsNetwork
 from src.solvers.greedy_solver import GreedySolver
+from solvers.or_solver import ORSolver
 from src.logger import get_logger
 
 logger = get_logger(__name__)
@@ -45,7 +46,7 @@ def main():
     logger.info(f'High Urgency Nodes: {urgent_nodes}')
 
     demands = resolve_demands(urgent_nodes, nyc_network)
-    solver = GreedySolver()
+    solver = ORSolver()
 
     if RUN_TYPE == 'single':
         # Single Vehicle Path Calculation
@@ -80,7 +81,7 @@ def main():
 
 def resolve_demands(customer_nodes, net_graph, demands=None):
     """Resolves a demands dict for customer_nodes."""
-    
+
     if demands is None:
         return {node: net_graph.NetGraph.nodes[node]['demand'] for node in customer_nodes}
 
