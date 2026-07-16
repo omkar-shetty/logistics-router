@@ -55,17 +55,22 @@ def main():
     vehicle_count = 1 if RUN_TYPE == 'single' else VEHICLE_COUNT
 
     for solver_name, solver in solvers.items():
-        solution = solver.solve(HUB_NODE, urgent_nodes, vehicle_count=vehicle_count,
-                                 capacity=VEHICLE_CAPACITY, net_graph=nyc_network,
-                                 demands=demands)
+        try:
+            solution = solver.solve(HUB_NODE, urgent_nodes, vehicle_count=vehicle_count,
+                                        capacity=VEHICLE_CAPACITY, net_graph=nyc_network,
+                                        demands=demands)
 
-        for i, route in enumerate(solution.routes):
-            logger.info(f'[{solver_name}] Vehicle: {i}')
-            logger.info(f'[{solver_name}] Travel path: {route}')
-            logger.info(f'[{solver_name}] Travel time: {solution.travel_times[i]}')
+            for i, route in enumerate(solution.routes):
+                logger.info(f'[{solver_name}] Vehicle: {i}')
+                logger.info(f'[{solver_name}] Travel path: {route}')
+                logger.info(f'[{solver_name}] Travel time: {solution.travel_times[i]}')
 
-        print_fleet_summary(solution, urgent_nodes, demands)
-        save_solution_plots(nyc_network, solution, solver_name)
+            print_fleet_summary(solution, urgent_nodes, demands)
+            save_solution_plots(nyc_network, solution, solver_name)
+        
+        except Exception as ex:
+            logger.error(f"Error occurred while solving with {solver_name}: {ex}")
+            continue
 
     os.makedirs("results", exist_ok=True)
     nyc_network.visualize(save_path="results/fleet_dispatch_schematic.png")
