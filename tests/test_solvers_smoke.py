@@ -49,7 +49,8 @@ def assert_valid_solution(solution):
 
     for route in solution.routes:
         assert route[0] == HUB
-        load = sum(DEMANDS[node] for node in route[1:])
+        customer_stops = [node for node in route[1:] if node != HUB]
+        load = sum(DEMANDS[node] for node in customer_stops)
         assert load <= CAPACITY
 
 

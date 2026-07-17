@@ -23,7 +23,7 @@ class GreedySolver(RoutingSolver):
 
         routes = [vehicle.route_history for vehicle in fleet]
         travel_times = [vehicle.travel_time for vehicle in fleet]
-        served = {node for vehicle in fleet for node in vehicle.route_history[1:]}
+        served = {node for vehicle in fleet for node in vehicle.route_history[1:] if node != hub_node}
         skipped = {node for vehicle in fleet for node in vehicle.skipped_nodes}
 
         return FleetSolution(
@@ -76,3 +76,5 @@ class GreedySolver(RoutingSolver):
         if vehicle.current_node != vehicle.hub:
             return_time = net_graph.get_path_distance(vehicle.current_node, vehicle.hub)
             vehicle.travel_time += return_time
+            vehicle.route_history.append(vehicle.hub)
+            vehicle.current_node = vehicle.hub

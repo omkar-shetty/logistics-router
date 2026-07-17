@@ -99,8 +99,9 @@ def print_fleet_summary(solution, urgent_nodes, demands):
     print(f"Total fleet travel time: {total_travel_time:.1f} mins")
     print(f"Stops served: {stops_served}/{total_urgent}")
     for i, route in enumerate(solution.routes):
-        stops_visited = len(route) - 1
-        load = sum(demands[node] for node in route[1:])
+        customer_stops = [node for node in route[1:] if node in demands]
+        stops_visited = len(customer_stops)
+        load = sum(demands[node] for node in customer_stops)
         print(f"  V{i}: {stops_visited} stops, "
               f"{solution.travel_times[i]:.1f} mins, load={load:.2f}")
 
