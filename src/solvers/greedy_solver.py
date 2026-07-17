@@ -72,3 +72,7 @@ class GreedySolver(RoutingSolver):
                 # TODO: Implement a mechanism to handle skipped nodes due to capacity constraints
                 vehicle.skipped_nodes.append(next_node)
                 unvisited_nodes.remove(next_node)  # Node cannot be visited with the current load
+
+        if vehicle.current_node != vehicle.hub:
+            return_time = net_graph.get_path_distance(vehicle.current_node, vehicle.hub)
+            vehicle.travel_time += return_time
